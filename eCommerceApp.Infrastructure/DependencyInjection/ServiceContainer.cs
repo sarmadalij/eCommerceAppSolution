@@ -5,6 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using eCommerceApp.Domain.Interfaces;
 using eCommerceApp.Infrastructure.Repositories;
 using eCommerceApp.Domain.Entities;
+using EntityFramework.Exceptions.SqlServer;
+using Microsoft.AspNetCore.Builder;
+using eCommerceApp.Infrastructure.MiddleWare;
+using eCommerceApp.Application.Services.Interfaces.Logging;
+using eCommerceApp.Infrastructure.Services;
 
 namespace eCommerceApp.Infrastructure.DependencyInjection
 {
@@ -22,13 +27,21 @@ namespace eCommerceApp.Infrastructure.DependencyInjection
                 sqlOptions.MigrationsAssembly(typeof(AppDbContext).Assembly.FullName);
                 sqlOptions.EnableRetryOnFailure();
 
-            }),
+            }).UseExceptionProcessor(),
             ServiceLifetime.Scoped);
 
             services.AddScoped<IGeneric<Product>, GenericRepository<Product>> ();
             services.AddScoped<IGeneric<Category>, GenericRepository<Category>>();
 
+            services.AddScoped(typeof(IAppLogger<>), typeof(SerilogLoggerAdapter<>));
+
             return services;
+        }
+
+        public static IApplicationBuilder UseInfrastructureService(this IApplicationBuilder app)
+        {
+            app.UseMiddleware<ExceptionHandlingMiddleware>();
+            return app;
         }
     }
 }
